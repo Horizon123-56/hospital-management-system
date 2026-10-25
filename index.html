@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library & Hospital Management System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-active { border-bottom: 3px solid #3b82f6; color: #1d4ed8; font-weight: 600; }
+        .toast-enter { transform: translateY(-20px); opacity: 0; transition: all 0.3s ease-out; }
+        .toast-show { transform: translateY(0); opacity: 1; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Header & Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- System Title & Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-sm">
+                        <i class="fa-solid me-1 fa-hospital-user text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-slate-900 leading-tight">Library & Hospital Management System</h1>
+                        <p class="text-xs text-slate-500 font-medium">CI/CD Automated Testing Target Application</p>
+                    </div>
+                </div>
+
+                <!-- Role Switcher & CI Status Badge -->
+                <div class="flex items-center space-x-4">
+                    <!-- CI/CD Status Indicator -->
+                    <div class="hidden md:flex items-center space-x-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Jenkins CI Quality Gate: PASSED</span>
+                    </div>
+
+                    <!-- Role Toggle -->
+                    <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                        <span class="text-xs font-semibold text-slate-500 px-2">Role:</span>
+                        <button id="role-user-btn" onclick="setRole('User')" class="px-3 py-1 rounded-lg text-xs font-semibold transition-all">User</button>
+                        <button id="role-admin-btn" onclick="setRole('Admin')" class="px-3 py-1 rounded-lg text-xs font-semibold transition-all">Admin</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module Navigation Tabs -->
+            <div class="flex space-x-8 mt-1 border-t border-slate-100">
+                <button id="tab-hospital" onclick="switchTab('hospital')" class="py-3 px-1 text-sm font-medium text-slate-500 hover:text-slate-700 flex items-center space-x-2 tab-active">
+                    <i class="fa-solid fa-square-plus text-red-500"></i>
+                    <span>Hospital Management (Patients/Doctors)</span>
+                </button>
+                <button id="tab-library" onclick="switchTab('library')" class="py-3 px-1 text-sm font-medium text-slate-500 hover:text-slate-700 flex items-center space-x-2">
+                    <i class="fa-solid fa-book-bookmark text-indigo-500"></i>
+                    <span>Library Management (Books/Borrowers)</span>
+                </button>
+                <button id="tab-reports" onclick="switchTab('reports')" class="py-3 px-1 text-sm font-medium text-slate-500 hover:text-slate-700 flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-pie text-emerald-500"></i>
+                    <span>Reports & Analytics</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- Active Role Banner -->
+        <div class="mb-6 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl flex items-center justify-between shadow-sm">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-shield-halved text-blue-600 text-lg"></i>
+                <div>
+                    <span class="font-semibold">Current Access Role: </span>
+                    <span id="current-role-label" class="font-bold underline">Admin</span>
+                    <span id="role-permission-hint" class="text-xs text-blue-600 ml-2">(Full Create, Read, Update, and Delete Permissions)</span>
+                </div>
+            </div>
+            <span class="text-xs bg-blue-200 text-blue-900 font-medium px-2.5 py-1 rounded-lg">Selenium Test Target Active</span>
+        </div>
+
+        <!-- SECTION 1: HOSPITAL SYSTEM -->
+        <div id="section-hospital" class="space-y-6">
+            <!-- Header Controls -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div class="relative w-full md:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400"></i>
+                    <input type="text" id="hospital-search" oninput="renderHospitalTable()" placeholder="Search patient, doctor, or diagnosis..." class="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button id="add-hospital-btn" onclick="openHospitalModal()" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all shadow-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Add New Patient / Record</span>
+                </button>
+            </div>
+
+            <!-- Hospital Records Table -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                <th class="p-4">Record ID</th>
+                                <th class="p-4">Patient Name</th>
+                                <th class="p-4">Age / Gender</th>
+                                <th class="p-4">Assigned Doctor</th>
+                                <th class="p-4">Diagnosis</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hospital-table-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Injected dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: LIBRARY SYSTEM -->
+        <div id="section-library" class="space-y-6 hidden">
+            <!-- Header Controls -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div class="relative w-full md:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400"></i>
+                    <input type="text" id="library-search" oninput="renderLibraryTable()" placeholder="Search book title, author, or borrower..." class="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button id="add-library-btn" onclick="openLibraryModal()" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-all shadow-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Add New Book / Loan</span>
+                </button>
+            </div>
+
+            <!-- Library Records Table -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                <th class="p-4">Book ID</th>
+                                <th class="p-4">Book Title</th>
+                                <th class="p-4">Author</th>
+                                <th class="p-4">Borrower Name</th>
+                                <th class="p-4">Due Date</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="library-table-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Injected dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: REPORTS & ANALYTICS -->
+        <div id="section-reports" class="space-y-6 hidden">
+            <!-- Metric Summary Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-blue-100 text-blue-600 rounded-xl">
+                        <i class="fa-solid fa-user-injured text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">Total Active Patients</p>
+                        <h3 id="stat-patients" class="text-2xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-red-100 text-red-600 rounded-xl">
+                        <i class="fa-solid fa-bed-pulse text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">Occupied Hospital Beds</p>
+                        <h3 id="stat-beds" class="text-2xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
+                        <i class="fa-solid fa-book text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">Total Catalog Books</p>
+                        <h3 id="stat-books" class="text-2xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-amber-100 text-amber-600 rounded-xl">
+                        <i class="fa-solid fa-hand-holding-hand text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">Active Book Loans</p>
+                        <h3 id="stat-loans" class="text-2xl font-bold text-slate-800">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Reports & Progress Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Hospital Occupancy & Status Report -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2">
+                        <i class="fa-solid fa-square-h text-red-500"></i>
+                        <span>Hospital Occupancy & Status Metrics</span>
+                    </h3>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span>Admitted Patients Rate</span>
+                                <span id="report-admitted-pct">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2.5">
+                                <div id="bar-admitted" class="bg-red-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span>Outpatient / Discharged Rate</span>
+                                <span id="report-discharged-pct">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2.5">
+                                <div id="bar-discharged" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Library Inventory & Borrowing Status Report -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2">
+                        <i class="fa-solid fa-book-open text-indigo-500"></i>
+                        <span>Library Inventory & Circulation Status</span>
+                    </h3>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span>Books Currently Borrowed</span>
+                                <span id="report-borrowed-pct">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2.5">
+                                <div id="bar-borrowed" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span>Books Available in Shelf</span>
+                                <span id="report-available-pct">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2.5">
+                                <div id="bar-available" class="bg-amber-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL 1: HOSPITAL FORM (CREATE / EDIT) -->
+    <div id="hospital-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="hospital-modal-title" class="font-bold text-slate-800 text-lg">Add Patient Record</h3>
+                <button onclick="closeHospitalModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="hospital-form" onsubmit="saveHospitalRecord(event)" class="space-y-4">
+                <input type="hidden" id="hospital-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Patient Name</label>
+                    <input type="text" id="patient-name" required class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Age</label>
+                        <input type="number" id="patient-age" required min="1" max="120" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Gender</label>
+                        <select id="patient-gender" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option>Male</option>
+                            <option>Female</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Assigned Doctor</label>
+                    <input type="text" id="patient-doctor" required class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Diagnosis</label>
+                    <input type="text" id="patient-diagnosis" required class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                    <select id="patient-status" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="Admitted">Admitted</option>
+                        <option value="Outpatient">Outpatient</option>
+                        <option value="Discharged">Discharged</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeHospitalModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Save Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: LIBRARY FORM (CREATE / EDIT) -->
+    <div id="library-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="library-modal-title" class="font-bold text-slate-800 text-lg">Add Book Record</h3>
+                <button onclick="closeLibraryModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="library-form" onsubmit="saveLibraryRecord(event)" class="space-y-4">
+                <input type="hidden" id="library-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Book Title</label>
+                    <input type="text" id="book-title" required class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Author</label>
+                    <input type="text" id="book-author" required class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Borrower Name</label>
+                    <input type="text" id="book-borrower" placeholder="Leave empty if available" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Due Date</label>
+                    <input type="date" id="book-duedate" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                    <select id="book-status" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="Available">Available</option>
+                        <option value="Borrowed">Borrowed</option>
+                        <option value="Reserved">Reserved</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeLibraryModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Save Book</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- VIEW DETAILS MODAL -->
+    <div id="view-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-lg">Record Details</h3>
+                <button onclick="closeViewModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="view-modal-content" class="space-y-3 text-sm text-slate-700">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="flex justify-end pt-3 border-t border-slate-100">
+                <button onclick="closeViewModal()" class="px-4 py-2 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-900 rounded-lg">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-4">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            Library & Hospital Management System &copy; 2026 — Group 14 CI/CD Selenium Automation Target Project
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Data Store
+        let currentRole = 'Admin'; // Admin or User
+        let activeTab = 'hospital';
+
+        let hospitalRecords = [
+            { id: 'HOSP-101', name: 'Advait Vaijapurkar', age: 24, gender: 'Male', doctor: 'Dr. Sharma', diagnosis: 'Routine Checkup', status: 'Outpatient' },
+            { id: 'HOSP-102', name: 'Sudarshan Mohan', age: 25, gender: 'Male', doctor: 'Dr. Mehta', diagnosis: 'Acute Appendicitis', status: 'Admitted' },
+            { id: 'HOSP-103', name: 'Kshitij Sawant', age: 23, gender: 'Male', doctor: 'Dr. Kapoor', diagnosis: 'Viral Fever', status: 'Discharged' },
+            { id: 'HOSP-104', name: 'Sriram Nithyanandan', age: 24, gender: 'Male', doctor: 'Dr. Sharma', diagnosis: 'Migraine Audit', status: 'Admitted' }
+        ];
+
+        let libraryRecords = [
+            { id: 'LIB-201', title: 'Selenium Test Automation Guide', author: 'Paul Grossman', borrower: 'Advait V.', dueDate: '2026-11-05', status: 'Borrowed' },
+            { id: 'LIB-202', title: 'CI/CD Pipelines with Jenkins', author: 'John Ferguson', borrower: 'Sudarshan M.', dueDate: '2026-11-10', status: 'Borrowed' },
+            { id: 'LIB-203', title: 'Clean Architecture in Java', author: 'Robert C. Martin', borrower: '-', dueDate: '-', status: 'Available' },
+            { id: 'LIB-204', title: 'Hospital Information Systems', author: 'Marion Ball', borrower: '-', dueDate: '-', status: 'Available' }
+        ];
+
+        // Init App
+        window.onload = function() {
+            setRole('Admin');
+            renderHospitalTable();
+            renderLibraryTable();
+            updateReports();
+        };
+
+        // Role Management
+        function setRole(role) {
+            currentRole = role;
+            const adminBtn = document.getElementById('role-admin-btn');
+            const userBtn = document.getElementById('role-user-btn');
+            const roleLabel = document.getElementById('current-role-label');
+            const roleHint = document.getElementById('role-permission-hint');
+            const addHospBtn = document.getElementById('add-hospital-btn');
+            const addLibBtn = document.getElementById('add-library-btn');
+
+            if (role === 'Admin') {
+                adminBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow-sm';
+                userBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-slate-800';
+                roleLabel.textContent = 'Admin';
+                roleHint.textContent = '(Full Create, Read, Update, and Delete Permissions)';
+                if (addHospBtn) addHospBtn.classList.remove('hidden');
+                if (addLibBtn) addLibBtn.classList.remove('hidden');
+            } else {
+                userBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold transition-all bg-slate-700 text-white shadow-sm';
+                adminBtn.className = 'px-3 py-1 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-slate-800';
+                roleLabel.textContent = 'User';
+                roleHint.textContent = '(Read-only Access: Adding & Deleting Disabled)';
+                if (addHospBtn) addHospBtn.classList.add('hidden');
+                if (addLibBtn) addLibBtn.classList.add('hidden');
+            }
+
+            renderHospitalTable();
+            renderLibraryTable();
+            showToast(`Switched access role to ${role}`);
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            activeTab = tab;
+            document.getElementById('section-hospital').classList.add('hidden');
+            document.getElementById('section-library').classList.add('hidden');
+            document.getElementById('section-reports').classList.add('hidden');
+
+            document.getElementById('tab-hospital').classList.remove('tab-active');
+            document.getElementById('tab-library').classList.remove('tab-active');
+            document.getElementById('tab-reports').classList.remove('tab-active');
+
+            if (tab === 'hospital') {
+                document.getElementById('section-hospital').classList.remove('hidden');
+                document.getElementById('tab-hospital').classList.add('tab-active');
+            } else if (tab === 'library') {
+                document.getElementById('section-library').classList.remove('hidden');
+                document.getElementById('tab-library').classList.add('tab-active');
+            } else if (tab === 'reports') {
+                document.getElementById('section-reports').classList.remove('hidden');
+                document.getElementById('tab-reports').classList.add('tab-active');
+                updateReports();
+            }
+        }
+
+        // --- HOSPITAL CRUD ---
+        function renderHospitalTable() {
+            const search = document.getElementById('hospital-search').value.toLowerCase();
+            const tbody = document.getElementById('hospital-table-body');
+            tbody.innerHTML = '';
+
+            const filtered = hospitalRecords.filter(r => 
+                r.id.toLowerCase().includes(search) || 
+                r.name.toLowerCase().includes(search) || 
+                r.doctor.toLowerCase().includes(search) || 
+                r.diagnosis.toLowerCase().includes(search)
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">No records found matching query</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(r => {
+                let badgeClass = r.status === 'Admitted' ? 'bg-red-100 text-red-700' : (r.status === 'Outpatient' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700');
+                
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-4 font-mono text-xs font-semibold text-slate-500">${r.id}</td>
+                    <td class="p-4 font-semibold text-slate-800">${r.name}</td>
+                    <td class="p-4 text-slate-600">${r.age} yrs / ${r.gender}</td>
+                    <td class="p-4 text-slate-600">${r.doctor}</td>
+                    <td class="p-4 text-slate-600">${r.diagnosis}</td>
+                    <td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeClass}">${r.status}</span></td>
+                    <td class="p-4 text-center space-x-2">
+                        <button onclick="viewRecord('hospital', '${r.id}')" class="text-slate-500 hover:text-slate-700" title="View"><i class="fa-solid fa-eye"></i></button>
+                        ${currentRole === 'Admin' ? `
+                            <button onclick="editHospitalRecord('${r.id}')" class="text-blue-600 hover:text-blue-800" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteRecord('hospital', '${r.id}')" class="text-red-500 hover:text-red-700" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        ` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openHospitalModal(isEdit = false) {
+            document.getElementById('hospital-modal-title').textContent = isEdit ? 'Edit Patient Record' : 'Add Patient Record';
+            document.getElementById('hospital-modal').classList.remove('hidden');
+        }
+
+        function closeHospitalModal() {
+            document.getElementById('hospital-modal').classList.add('hidden');
+            document.getElementById('hospital-form').reset();
+            document.getElementById('hospital-id').value = '';
+        }
+
+        function saveHospitalRecord(e) {
+            e.preventDefault();
+            const id = document.getElementById('hospital-id').value;
+            const name = document.getElementById('patient-name').value;
+            const age = document.getElementById('patient-age').value;
+            const gender = document.getElementById('patient-gender').value;
+            const doctor = document.getElementById('patient-doctor').value;
+            const diagnosis = document.getElementById('patient-diagnosis').value;
+            const status = document.getElementById('patient-status').value;
+
+            if (id) {
+                // Update
+                const idx = hospitalRecords.findIndex(r => r.id === id);
+                if (idx !== -1) {
+                    hospitalRecords[idx] = { id, name, age, gender, doctor, diagnosis, status };
+                    showToast('Hospital record updated successfully!');
+                }
+            } else {
+                // Create
+                const newId = `HOSP-${100 + hospitalRecords.length + 1}`;
+                hospitalRecords.push({ id: newId, name, age, gender, doctor, diagnosis, status });
+                showToast('New patient record created!');
+            }
+
+            closeHospitalModal();
+            renderHospitalTable();
+            updateReports();
+        }
+
+        function editHospitalRecord(id) {
+            const record = hospitalRecords.find(r => r.id === id);
+            if (!record) return;
+            document.getElementById('hospital-id').value = record.id;
+            document.getElementById('patient-name').value = record.name;
+            document.getElementById('patient-age').value = record.age;
+            document.getElementById('patient-gender').value = record.gender;
+            document.getElementById('patient-doctor').value = record.doctor;
+            document.getElementById('patient-diagnosis').value = record.diagnosis;
+            document.getElementById('patient-status').value = record.status;
+            openHospitalModal(true);
+        }
+
+        // --- LIBRARY CRUD ---
+        function renderLibraryTable() {
+            const search = document.getElementById('library-search').value.toLowerCase();
+            const tbody = document.getElementById('library-table-body');
+            tbody.innerHTML = '';
+
+            const filtered = libraryRecords.filter(r => 
+                r.id.toLowerCase().includes(search) || 
+                r.title.toLowerCase().includes(search) || 
+                r.author.toLowerCase().includes(search) || 
+                r.borrower.toLowerCase().includes(search)
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">No library records found</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(r => {
+                let badgeClass = r.status === 'Borrowed' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-4 font-mono text-xs font-semibold text-slate-500">${r.id}</td>
+                    <td class="p-4 font-semibold text-slate-800">${r.title}</td>
+                    <td class="p-4 text-slate-600">${r.author}</td>
+                    <td class="p-4 text-slate-600">${r.borrower}</td>
+                    <td class="p-4 text-slate-600 font-mono text-xs">${r.dueDate}</td>
+                    <td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs font-medium ${badgeClass}">${r.status}</span></td>
+                    <td class="p-4 text-center space-x-2">
+                        <button onclick="viewRecord('library', '${r.id}')" class="text-slate-500 hover:text-slate-700" title="View"><i class="fa-solid fa-eye"></i></button>
+                        ${currentRole === 'Admin' ? `
+                            <button onclick="editLibraryRecord('${r.id}')" class="text-indigo-600 hover:text-indigo-800" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteRecord('library', '${r.id}')" class="text-red-500 hover:text-red-700" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        ` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openLibraryModal(isEdit = false) {
+            document.getElementById('library-modal-title').textContent = isEdit ? 'Edit Book Record' : 'Add Book Record';
+            document.getElementById('library-modal').classList.remove('hidden');
+        }
+
+        function closeLibraryModal() {
+            document.getElementById('library-modal').classList.add('hidden');
+            document.getElementById('library-form').reset();
+            document.getElementById('library-id').value = '';
+        }
+
+        function saveLibraryRecord(e) {
+            e.preventDefault();
+            const id = document.getElementById('library-id').value;
+            const title = document.getElementById('book-title').value;
+            const author = document.getElementById('book-author').value;
+            const borrower = document.getElementById('book-borrower').value || '-';
+            const dueDate = document.getElementById('book-duedate').value || '-';
+            const status = document.getElementById('book-status').value;
+
+            if (id) {
+                // Update
+                const idx = libraryRecords.findIndex(r => r.id === id);
+                if (idx !== -1) {
+                    libraryRecords[idx] = { id, title, author, borrower, dueDate, status };
+                    showToast('Book record updated successfully!');
+                }
+            } else {
+                // Create
+                const newId = `LIB-${200 + libraryRecords.length + 1}`;
+                libraryRecords.push({ id: newId, title, author, borrower, dueDate, status });
+                showToast('New book cataloged!');
+            }
+
+            closeLibraryModal();
+            renderLibraryTable();
+            updateReports();
+        }
+
+        function editLibraryRecord(id) {
+            const record = libraryRecords.find(r => r.id === id);
+            if (!record) return;
+            document.getElementById('library-id').value = record.id;
+            document.getElementById('book-title').value = record.title;
+            document.getElementById('book-author').value = record.author;
+            document.getElementById('book-borrower').value = record.borrower === '-' ? '' : record.borrower;
+            document.getElementById('book-duedate').value = record.dueDate === '-' ? '' : record.dueDate;
+            document.getElementById('book-status').value = record.status;
+            openLibraryModal(true);
+        }
+
+        // --- COMMON VIEW & DELETE ---
+        function viewRecord(type, id) {
+            const container = document.getElementById('view-modal-content');
+            container.innerHTML = '';
+
+            if (type === 'hospital') {
+                const r = hospitalRecords.find(item => item.id === id);
+                if (!r) return;
+                container.innerHTML = `
+                    <div class="p-3 bg-slate-50 rounded-lg space-y-2">
+                        <p><strong class="text-slate-500">System ID:</strong> ${r.id}</p>
+                        <p><strong class="text-slate-500">Patient Name:</strong> ${r.name}</p>
+                        <p><strong class="text-slate-500">Age & Gender:</strong> ${r.age} yrs / ${r.gender}</p>
+                        <p><strong class="text-slate-500">Assigned Doctor:</strong> ${r.doctor}</p>
+                        <p><strong class="text-slate-500">Diagnosis:</strong> ${r.diagnosis}</p>
+                        <p><strong class="text-slate-500">Status:</strong> ${r.status}</p>
+                    </div>
+                `;
+            } else {
+                const r = libraryRecords.find(item => item.id === id);
+                if (!r) return;
+                container.innerHTML = `
+                    <div class="p-3 bg-slate-50 rounded-lg space-y-2">
+                        <p><strong class="text-slate-500">Book ID:</strong> ${r.id}</p>
+                        <p><strong class="text-slate-500">Book Title:</strong> ${r.title}</p>
+                        <p><strong class="text-slate-500">Author:</strong> ${r.author}</p>
+                        <p><strong class="text-slate-500">Borrower:</strong> ${r.borrower}</p>
+                        <p><strong class="text-slate-500">Return Due Date:</strong> ${r.dueDate}</p>
+                        <p><strong class="text-slate-500">Availability:</strong> ${r.status}</p>
+                    </div>
+                `;
+            }
+
+            document.getElementById('view-modal').classList.remove('hidden');
+        }
+
+        function closeViewModal() {
+            document.getElementById('view-modal').classList.add('hidden');
+        }
+
+        function deleteRecord(type, id) {
+            if (currentRole !== 'Admin') {
+                showToast('Permission Denied: Only Admins can delete', 'error');
+                return;
+            }
+
+            if (type === 'hospital') {
+                hospitalRecords = hospitalRecords.filter(r => r.id !== id);
+                renderHospitalTable();
+                showToast(`Deleted hospital record ${id}`);
+            } else {
+                libraryRecords = libraryRecords.filter(r => r.id !== id);
+                renderLibraryTable();
+                showToast(`Deleted book record ${id}`);
+            }
+            updateReports();
+        }
+
+        // --- REPORTS & METRICS ---
+        function updateReports() {
+            const totalPatients = hospitalRecords.length;
+            const occupiedBeds = hospitalRecords.filter(r => r.status === 'Admitted').length;
+            const totalBooks = libraryRecords.length;
+            const activeLoans = libraryRecords.filter(r => r.status === 'Borrowed').length;
+
+            document.getElementById('stat-patients').textContent = totalPatients;
+            document.getElementById('stat-beds').textContent = occupiedBeds;
+            document.getElementById('stat-books').textContent = totalBooks;
+            document.getElementById('stat-loans').textContent = activeLoans;
+
+            // Calculations
+            const admittedPct = totalPatients > 0 ? Math.round((occupiedBeds / totalPatients) * 100) : 0;
+            const dischargedPct = totalPatients > 0 ? 100 - admittedPct : 0;
+            
+            const borrowedPct = totalBooks > 0 ? Math.round((activeLoans / totalBooks) * 100) : 0;
+            const availablePct = totalBooks > 0 ? 100 - borrowedPct : 0;
+
+            document.getElementById('report-admitted-pct').textContent = `${admittedPct}%`;
+            document.getElementById('bar-admitted').style.width = `${admittedPct}%`;
+
+            document.getElementById('report-discharged-pct').textContent = `${dischargedPct}%`;
+            document.getElementById('bar-discharged').style.width = `${dischargedPct}%`;
+
+            document.getElementById('report-borrowed-pct').textContent = `${borrowedPct}%`;
+            document.getElementById('bar-borrowed').style.width = `${borrowedPct}%`;
+
+            document.getElementById('report-available-pct').textContent = `${availablePct}%`;
+            document.getElementById('bar-available').style.width = `${availablePct}%`;
+        }
+
+        // --- TOAST NOTIFICATION UTILITY ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-slate-900 text-white' : 'bg-red-600 text-white';
+            
+            toast.className = `px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center space-x-2 ${bgClass} toast-enter pointer-events-auto`;
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-circle-exclamation text-white'}"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('toast-show'), 10);
+
+            setTimeout(() => {
+                toast.classList.remove('toast-show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
